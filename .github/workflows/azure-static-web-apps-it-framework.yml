@@ -27,6 +27,9 @@ jobs:
       - name: Build Vite App
         run: npm run build
 
+      - name: Vérifier contenu de dist
+        run: ls -la dist
+
       - name: Vérifier contenu dist
         run: ls -la dist
 
