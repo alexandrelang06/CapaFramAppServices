@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server.js"
+    "build": "vite build",
+    "start": "node api/server.js"
   },
   "dependencies": {
     "@fontsource/bree-serif": "^5.0.18",
