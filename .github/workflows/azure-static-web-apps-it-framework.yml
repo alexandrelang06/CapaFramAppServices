@@ -1,4 +1,4 @@
-name: Deploy Vite + Express app to Azure App Service
+name: Deploy React Vite app to Azure App Service
 
 on:
   push:
@@ -8,8 +8,9 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -20,12 +21,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build frontend
+      - name: Build project
         run: npm run build
 
-      - name: Upload to Azure App Service
+      - name: Copy web.config for Azure
+        run: cp public/web.config dist/
+
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'IT-framework-prod'
+          app-name: 'IT-framework-prod' # remplace si besoin
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .
+          package: './dist'

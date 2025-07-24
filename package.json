@@ -5,17 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "build": "vite build",
-    "start": "node api/server.js"
+    "start": "serve dist",
+    "postbuild": "cp public/web.config dist/"
   },
   "dependencies": {
     "@fontsource/bree-serif": "^5.0.18",
     "@supabase/supabase-js": "^2.39.7",
     "chart.js": "^4.4.1",
     "clsx": "^2.1.0",
-    "express": "^5.1.0",
     "framer-motion": "^11.0.8",
     "html2canvas": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
