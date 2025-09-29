@@ -41,13 +41,13 @@ export function ProcessPanel({ process, onClose }: ProcessPanelProps) {
                 <p key={index} className="text-gray-600">{desc}</p>
               ))
             ) : (
-              <p className="text-gray-500 italic">En cours de définition</p>
+              <p className="text-gray-500 italic">In progress of being defined</p>
             )}
           </div>
         </section>
 
         <section>
-          <h3 className="font-bree text-lg text-blue-dark mb-3">Questions clés</h3>
+          <h3 className="font-bree text-lg text-blue-dark mb-3">Key questions</h3>
           {process.key_questions.length > 0 ? (
             <ul className="space-y-2 bg-gray-50 p-4 rounded-lg">
               {process.key_questions.map((question, index) => (
@@ -58,12 +58,12 @@ export function ProcessPanel({ process, onClose }: ProcessPanelProps) {
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500 italic">En cours de définition</p>
+            <p className="text-gray-500 italic">In progress of being defined</p>
           )}
         </section>
 
         <section>
-          <h3 className="font-bree text-lg text-blue-dark mb-3">Livrables clés</h3>
+          <h3 className="font-bree text-lg text-blue-dark mb-3">Key deliverables</h3>
           {process.key_artifacts.length > 0 ? (
             <ul className="space-y-2 bg-gray-50 p-4 rounded-lg">
               {process.key_artifacts.map((artifact, index) => (
@@ -74,12 +74,12 @@ export function ProcessPanel({ process, onClose }: ProcessPanelProps) {
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500 italic">En cours de définition</p>
+            <p className="text-gray-500 italic">In progress of being defined</p>
           )}
         </section>
 
         <section>
-          <h3 className="font-bree text-lg text-blue-dark mb-3">Niveaux de maturité</h3>
+          <h3 className="font-bree text-lg text-blue-dark mb-3">Maturity levels</h3>
           <div className="space-y-4">
             {Object.entries(process.maturity_levels)
               .sort(([a], [b]) => parseInt(a) - parseInt(b))
@@ -89,7 +89,7 @@ export function ProcessPanel({ process, onClose }: ProcessPanelProps) {
                   className="p-4 rounded-lg border border-gray-200 bg-gray-50"
                 >
                   <h4 className="font-bree text-blue-dark mb-2">
-                    Niveau {level}
+                    Level {level}
                   </h4>
                   <p className="text-gray-600">{typeof description === 'string' ? description : description.description || 'En cours de définition'}</p>
                 </div>
