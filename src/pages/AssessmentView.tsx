@@ -1161,7 +1161,7 @@ export function AssessmentView() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">CIO Office Structure</label>
+                  <label className="block text-sm font-medium text-gray-700">CIO organization structure</label>
                   {isEditingDetails ? (
                     <select
                       value={editedDetails.company.cio_organization}
