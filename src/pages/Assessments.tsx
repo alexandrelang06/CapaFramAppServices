@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Building2, User, Lock as LockOpen, Lock, Download, Eye, Edit, ChevronUp, ChevronDown, Globe, Landmark, DollarSign, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, Calendar, Building2, User, Lock as LockOpen, Lock, Download, Eye, CreditCard as Edit, ChevronUp, ChevronDown, Globe, Landmark, DollarSign, Trash2, AlertTriangle } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -409,14 +409,6 @@ export function Assessments() {
                 <th className="px-4 py-3 text-left text-gray font-din">Assessment Details</th>
                 <th 
                   className="px-4 py-3 text-left text-gray font-din cursor-pointer hover:text-blue-dark"
-                  onClick={() => handleSort('completion')}
-                >
-                  Completion {sortField === 'completion' && (
-                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 inline ml-1" /> : <ChevronDown className="h-4 w-4 inline ml-1" />
-                  )}
-                </th>
-                <th 
-                  className="px-4 py-3 text-left text-gray font-din cursor-pointer hover:text-blue-dark"
                   onClick={() => handleSort('company')}
                 >
                   Company {sortField === 'company' && (
@@ -501,19 +493,6 @@ export function Assessments() {
                           )}
                         </button>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center space-x-2">
-                      <div className="flex flex-col items-start space-y-1">
-                        <div className="w-24 h-3 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary transition-all duration-300"
-                            style={{ width: `${assessment.completion_percentage}%` }}
-                          />
-                        </div>
-                        <span className="font-din text-sm">{assessment.completion_percentage}%</span>
-                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">

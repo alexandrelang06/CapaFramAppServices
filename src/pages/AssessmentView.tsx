@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Building2, Calendar, User, Globe, Landmark, DollarSign, Lock, Lock as LockOpen, Download, Printer, ZoomIn, ZoomOut, Maximize2, Edit, Save, X, FileText, AlertCircle, Database } from 'lucide-react';
+import { Building2, Calendar, User, Globe, Landmark, DollarSign, Lock, Lock as LockOpen, Download, Printer, ZoomIn, ZoomOut, Maximize2, CreditCard as Edit, Save, X, FileText, AlertCircle, Database } from 'lucide-react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import {
@@ -76,6 +76,40 @@ const INDUSTRIES = [
   'Utilities, Postal & Transportation'
 ];
 
+const IT_DEPARTMENT_SIZES = [
+  'Less than 50',
+  '50-100',
+  '100-200',
+  '200-500',
+  '500-1000',
+  '>1000',
+  'I don\'t know'
+];
+
+const IT_COST_RANGES = [
+  '<10M',
+  '10-20',
+  '20-50',
+  '50-100',
+  '100-200',
+  '>200M',
+  'I don\'t know'
+];
+
+const CIO_ORGANIZATIONS = [
+  'Centralized (80%+ of the IT department in a single entity)',
+  'Decentralized (IT department spread across multiple countries)'
+];
+
+const CHALLENGES = [
+  'Cost reduction',
+  'Operational efficiency',
+  'Security and compliance',
+  'Technological modernization',
+  'Strategic alignment',
+  'Optimization of IT resource management'
+];
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -112,6 +146,8 @@ interface AssessmentData {
     country: string;
     company_size: string;
     annual_revenue: string;
+    exact_employees: number | null;
+    effective_revenue: number | null;
     it_department_size: string;
     exact_it_employees: number | null;
     annual_it_cost: string;
@@ -160,21 +196,6 @@ export function AssessmentView() {
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [savingDetails, setSavingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
-  const [editableData, setEditableData] = useState({
-    effectiveRevenue: '',
-    exactEmployees: '',
-    exactItEmployees: '',
-    effectiveItCost: '',
-    cioOrganization: '',
-    itDepartmentSize: '',
-    annualItCost: '',
-    detailedBenchmarkAvailable: 'no',
-    strategyContext: '',
-    technologyContext: '',
-    assessmentScope: '',
-    challenges: [] as string[],
-    bearingpointAdvisor: ''
-  });
 
   // Calculate completion percentage
   const calculateCompletionPercentage = useCallback(async (assessmentScores: AssessmentScore[]) => {
@@ -229,74 +250,6 @@ export function AssessmentView() {
     }
   }, []);
 
-  const handleSaveDetails = async () => {
-    if (!assessment) return;
-    
-    try {
-      setSavingDetails(true);
-      setDetailsError(null);
-
-      // Update company data
-      const { error: companyError } = await supabase
-        .from('companies')
-        .update({
-          effective_revenue: editableData.effectiveRevenue ? parseFloat(editableData.effectiveRevenue) : null,
-          exact_employees: editableData.exactEmployees ? parseInt(editableData.exactEmployees) : null,
-          exact_it_employees: editableData.exactItEmployees ? parseInt(editableData.exactItEmployees) : null,
-          effective_it_cost: editableData.effectiveItCost ? parseFloat(editableData.effectiveItCost) : null,
-          cio_organization: editableData.cioOrganization,
-          it_department_size: editableData.itDepartmentSize,
-          annual_it_cost: editableData.annualItCost,
-          detailed_benchmark_available: editableData.detailedBenchmarkAvailable === 'yes'
-        })
-        .eq('id', assessment.company.id);
-
-      if (companyError) throw companyError;
-
-      // Update assessment data
-      const { error: assessmentError } = await supabase
-        .from('assessments')
-        .update({
-          strategy_context: editableData.strategyContext,
-          technology_context: editableData.technologyContext,
-          assessment_scope: editableData.assessmentScope,
-          challenges: editableData.challenges.length > 0 ? editableData.challenges : null,
-          bearingpoint_advisor: editableData.bearingpointAdvisor
-        })
-        .eq('id', assessment.id);
-
-      if (assessmentError) throw assessmentError;
-
-      // Update local state
-      setAssessment(prev => prev ? {
-        ...prev,
-        strategy_context: editableData.strategyContext,
-        technology_context: editableData.technologyContext,
-        assessment_scope: editableData.assessmentScope,
-        challenges: editableData.challenges.length > 0 ? editableData.challenges : null,
-        bearingpoint_advisor: editableData.bearingpointAdvisor,
-        company: {
-          ...prev.company,
-          effective_revenue: editableData.effectiveRevenue ? parseFloat(editableData.effectiveRevenue) : null,
-          exact_employees: editableData.exactEmployees ? parseInt(editableData.exactEmployees) : null,
-          exact_it_employees: editableData.exactItEmployees ? parseInt(editableData.exactItEmployees) : null,
-          effective_it_cost: editableData.effectiveItCost ? parseFloat(editableData.effectiveItCost) : null,
-          cio_organization: editableData.cioOrganization,
-          it_department_size: editableData.itDepartmentSize,
-          annual_it_cost: editableData.annualItCost,
-          detailed_benchmark_available: editableData.detailedBenchmarkAvailable === 'yes'
-        }
-      } : null);
-
-      setIsEditingDetails(false);
-    } catch (err) {
-      console.error('Error saving details:', err);
-      setDetailsError('Failed to save changes. Please try again.');
-    } finally {
-      setSavingDetails(false);
-    }
-  };
-
   const [editedHeader, setEditedHeader] = useState({
     company: {
       name: '',
@@ -314,6 +267,8 @@ export function AssessmentView() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [editedDetails, setEditedDetails] = useState({
     company: {
+      exact_employees: null as number | null,
+      effective_revenue: null as number | null,
       it_department_size: '',
       exact_it_employees: null as number | null,
       annual_it_cost: '',
@@ -328,9 +283,76 @@ export function AssessmentView() {
       assessment_scope: '',
       challenges: [] as string[],
       bearingpoint_advisor: ''
-    },
-    missionLead: ''
+    }
   });
+
+  const handleSaveDetails = async () => {
+    if (!assessment) return;
+    
+    try {
+      setSavingDetails(true);
+      setDetailsError(null);
+
+      // Update company data
+      const { error: companyError } = await supabase
+        .from('companies')
+        .update({
+          exact_employees: editedDetails.company.exact_employees,
+          effective_revenue: editedDetails.company.effective_revenue,
+          it_department_size: editedDetails.company.it_department_size,
+          exact_it_employees: editedDetails.company.exact_it_employees,
+          annual_it_cost: editedDetails.company.annual_it_cost,
+          effective_it_cost: editedDetails.company.effective_it_cost,
+          cio_organization: editedDetails.company.cio_organization,
+          detailed_benchmark_available: editedDetails.company.detailed_benchmark_available
+        })
+        .eq('id', assessment.company.id);
+
+      if (companyError) throw companyError;
+
+      // Update assessment data
+      const { error: assessmentError } = await supabase
+        .from('assessments')
+        .update({
+          strategy_context: editedDetails.assessment.strategy_context,
+          technology_context: editedDetails.assessment.technology_context,
+          assessment_scope: editedDetails.assessment.assessment_scope,
+          challenges: editedDetails.assessment.challenges.length > 0 ? editedDetails.assessment.challenges : null,
+          bearingpoint_advisor: editedDetails.assessment.bearingpoint_advisor
+        })
+        .eq('id', assessment.id);
+
+      if (assessmentError) throw assessmentError;
+
+      // Update local state
+      setAssessment(prev => prev ? {
+        ...prev,
+        strategy_context: editedDetails.assessment.strategy_context,
+        technology_context: editedDetails.assessment.technology_context,
+        assessment_scope: editedDetails.assessment.assessment_scope,
+        challenges: editedDetails.assessment.challenges.length > 0 ? editedDetails.assessment.challenges : null,
+        bearingpoint_advisor: editedDetails.assessment.bearingpoint_advisor,
+        company: {
+          ...prev.company,
+          exact_employees: editedDetails.company.exact_employees,
+          effective_revenue: editedDetails.company.effective_revenue,
+          it_department_size: editedDetails.company.it_department_size,
+          exact_it_employees: editedDetails.company.exact_it_employees,
+          annual_it_cost: editedDetails.company.annual_it_cost,
+          effective_it_cost: editedDetails.company.effective_it_cost,
+          cio_organization: editedDetails.company.cio_organization,
+          detailed_benchmark_available: editedDetails.company.detailed_benchmark_available
+        }
+      } : null);
+
+      setIsEditingDetails(false);
+    } catch (err) {
+      console.error('Error saving details:', err);
+      setDetailsError('Failed to save changes. Please try again.');
+    } finally {
+      setSavingDetails(false);
+    }
+  };
 
   const handleToggleStatus = async () => {
     if (!assessment) return;
@@ -487,6 +509,8 @@ export function AssessmentView() {
             country,
             company_size,
             annual_revenue,
+            exact_employees,
+            effective_revenue,
             it_department_size,
             annual_it_cost,
             it_budget_percentage,
@@ -962,18 +986,6 @@ export function AssessmentView() {
                 </>
               )}
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-gray">Completion:</span>
-              <div className="flex-1">
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden relative">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-[#2fd0fd] transition-all duration-300"
-                    style={{ width: `${completionPercentage}%` }}
-                  />
-                </div>
-              </div>
-              <span>{completionPercentage}%</span>
-            </div>
           </div>
         </div>
       </div>
@@ -981,7 +993,7 @@ export function AssessmentView() {
       {/* Expandable Details Section */}
       <div className="bg-white rounded-lg shadow-sm">
         <div 
-          className="p-6 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors hidden"
+          className="p-6 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
           onClick={() => setShowDetailsSection(!showDetailsSection)}
         >
           <div className="flex items-center justify-between">
@@ -1000,7 +1012,65 @@ export function AssessmentView() {
         </div>
 
         {showDetailsSection && (
-          <div className="p-6 space-y-6 hidden">
+          <div className="p-6 space-y-6">
+            {detailsError && (
+              <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded">
+                <div className="flex items-center space-x-3">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  <p className="text-red-700">{detailsError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Company Details */}
+            <div className="border-b border-gray-100 pb-6">
+              <h3 className="font-bree text-lg text-blue-dark mb-4">Company Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Exact Number of Employees</label>
+                  {isEditingDetails ? (
+                    <input
+                      type="number"
+                      min="1"
+                      value={editedDetails.company.exact_employees || ''}
+                      onChange={(e) => setEditedDetails(prev => ({
+                        ...prev,
+                        company: { ...prev.company, exact_employees: parseInt(e.target.value) || null }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue focus:border-blue outline-none"
+                      placeholder="Enter exact number of employees"
+                    />
+                  ) : (
+                    <p className="text-gray-600">{assessment.company.exact_employees?.toLocaleString() || 'Not specified'}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Effective Revenue (€)</label>
+                  {isEditingDetails ? (
+                    <input
+                      type="number"
+                      min="1"
+                      value={editedDetails.company.effective_revenue || ''}
+                      onChange={(e) => setEditedDetails(prev => ({
+                        ...prev,
+                        company: { ...prev.company, effective_revenue: parseFloat(e.target.value) || null }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue focus:border-blue outline-none"
+                      placeholder="Enter effective revenue"
+                    />
+                  ) : (
+                    <p className="text-gray-600">
+                      {assessment.company.effective_revenue 
+                        ? `€${assessment.company.effective_revenue.toLocaleString()}` 
+                        : 'Not specified'
+                      }
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* IT Department Details */}
             <div className="border-b border-gray-100 pb-6">
               <h3 className="font-bree text-lg text-blue-dark mb-4">IT Department Information</h3>
@@ -1009,7 +1079,7 @@ export function AssessmentView() {
                   <label className="block text-sm font-medium text-gray-700">IT Department Size</label>
                   {isEditingDetails ? (
                     <select
-                      value={editedDetails.company.it_department_size || ''}
+                      value={editedDetails.company.it_department_size}
                       onChange={(e) => setEditedDetails(prev => ({
                         ...prev,
                         company: { ...prev.company, it_department_size: e.target.value }
@@ -1017,13 +1087,9 @@ export function AssessmentView() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue focus:border-blue outline-none"
                     >
                       <option value="">Select IT department size</option>
-                      <option value="Less than 50">Less than 50</option>
-                      <option value="50-100">50-100</option>
-                      <option value="100-200">100-200</option>
-                      <option value="200-500">200-500</option>
-                      <option value="500-1000">500-1000</option>
-                      <option value=">1000">&gt;1000</option>
-                      <option value="I don't know">I don't know</option>
+                      {IT_DEPARTMENT_SIZES.map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
                     </select>
                   ) : (
                     <p className="text-gray-600">{assessment.company.it_department_size || 'Not specified'}</p>
@@ -1031,7 +1097,7 @@ export function AssessmentView() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Exact IT Employees</label>
+                  <label className="block text-sm font-medium text-gray-700">Exact Number of IT Employees</label>
                   {isEditingDetails ? (
                     <input
                       type="number"
@@ -1045,7 +1111,7 @@ export function AssessmentView() {
                       placeholder="Enter exact number of IT employees"
                     />
                   ) : (
-                    <p className="text-gray-600">{assessment.company.exact_it_employees || 'Not specified'}</p>
+                    <p className="text-gray-600">{assessment.company.exact_it_employees?.toLocaleString() || 'Not specified'}</p>
                   )}
                 </div>
 
@@ -1053,7 +1119,7 @@ export function AssessmentView() {
                   <label className="block text-sm font-medium text-gray-700">Annual IT Cost</label>
                   {isEditingDetails ? (
                     <select
-                      value={editedDetails.company.annual_it_cost || ''}
+                      value={editedDetails.company.annual_it_cost}
                       onChange={(e) => setEditedDetails(prev => ({
                         ...prev,
                         company: { ...prev.company, annual_it_cost: e.target.value }
@@ -1061,13 +1127,9 @@ export function AssessmentView() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue focus:border-blue outline-none"
                     >
                       <option value="">Select annual IT cost</option>
-                      <option value="<10M">&lt;10M</option>
-                      <option value="10-20">10-20</option>
-                      <option value="20-50">20-50</option>
-                      <option value="50-100">50-100</option>
-                      <option value="100-200">100-200</option>
-                      <option value=">200M">&gt;200M</option>
-                      <option value="I don't know">I don't know</option>
+                      {IT_COST_RANGES.map(range => (
+                        <option key={range} value={range}>{range}</option>
+                      ))}
                     </select>
                   ) : (
                     <p className="text-gray-600">{assessment.company.annual_it_cost || 'Not specified'}</p>
@@ -1099,23 +1161,20 @@ export function AssessmentView() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">CIO Organization</label>
+                  <label className="block text-sm font-medium text-gray-700">CIO Office Structure</label>
                   {isEditingDetails ? (
                     <select
-                      value={editedDetails.company.cio_organization || ''}
+                      value={editedDetails.company.cio_organization}
                       onChange={(e) => setEditedDetails(prev => ({
                         ...prev,
                         company: { ...prev.company, cio_organization: e.target.value }
                       }))}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue focus:border-blue outline-none"
                     >
-                      <option value="">Select CIO organization</option>
-                      <option value="Centralized (80%+ of the IT department in a single entity)">
-                        Centralized (80%+ of the IT department in a single entity)
-                      </option>
-                      <option value="Decentralized (IT department spread across multiple countries)">
-                        Decentralized (IT department spread across multiple countries)
-                      </option>
+                      <option value="">Select CIO office structure</option>
+                      {CIO_ORGANIZATIONS.map(org => (
+                        <option key={org} value={org}>{org}</option>
+                      ))}
                     </select>
                   ) : (
                     <p className="text-gray-600">{assessment.company.cio_organization || 'Not specified'}</p>
@@ -1129,17 +1188,17 @@ export function AssessmentView() {
               <h3 className="font-bree text-lg text-blue-dark mb-4">Assessment Context</h3>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Strategy Context</label>
+                  <label className="block text-sm font-medium text-gray-700">Strategy and Business Context</label>
                   {isEditingDetails ? (
                     <textarea
-                      value={editedDetails.assessment.strategy_context || ''}
+                      value={editedDetails.assessment.strategy_context}
                       onChange={(e) => setEditedDetails(prev => ({
                         ...prev,
                         assessment: { ...prev.assessment, strategy_context: e.target.value }
                       }))}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue focus:border-blue outline-none"
                       rows={3}
-                      placeholder="Describe the strategy context..."
+                      placeholder="Describe the organization's strategy and business context..."
                     />
                   ) : (
                     <p className="text-gray-600 whitespace-pre-wrap">
@@ -1149,17 +1208,17 @@ export function AssessmentView() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Technology Context</label>
+                  <label className="block text-sm font-medium text-gray-700">Technology Strategy and Context</label>
                   {isEditingDetails ? (
                     <textarea
-                      value={editedDetails.assessment.technology_context || ''}
+                      value={editedDetails.assessment.technology_context}
                       onChange={(e) => setEditedDetails(prev => ({
                         ...prev,
                         assessment: { ...prev.assessment, technology_context: e.target.value }
                       }))}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue focus:border-blue outline-none"
                       rows={3}
-                      placeholder="Describe the technology context..."
+                      placeholder="Describe the organization's technology strategy and context..."
                     />
                   ) : (
                     <p className="text-gray-600 whitespace-pre-wrap">
@@ -1172,14 +1231,14 @@ export function AssessmentView() {
                   <label className="block text-sm font-medium text-gray-700">Assessment Scope</label>
                   {isEditingDetails ? (
                     <textarea
-                      value={editedDetails.assessment.assessment_scope || ''}
+                      value={editedDetails.assessment.assessment_scope}
                       onChange={(e) => setEditedDetails(prev => ({
                         ...prev,
                         assessment: { ...prev.assessment, assessment_scope: e.target.value }
                       }))}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue focus:border-blue outline-none"
                       rows={3}
-                      placeholder="Define the assessment scope..."
+                      placeholder="Define the precise scope of the assessment..."
                     />
                   ) : (
                     <p className="text-gray-600 whitespace-pre-wrap">
@@ -1192,13 +1251,13 @@ export function AssessmentView() {
                   <label className="block text-sm font-medium text-gray-700">Challenges</label>
                   {isEditingDetails ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {['Cost reduction', 'Operational efficiency', 'Security and compliance', 'Technological modernization', 'Strategic alignment', 'Optimization of IT resource management'].map(challenge => (
+                      {CHALLENGES.map(challenge => (
                         <label key={challenge} className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            checked={editedDetails.assessment.challenges?.includes(challenge) || false}
+                            checked={editedDetails.assessment.challenges.includes(challenge)}
                             onChange={(e) => {
-                              const currentChallenges = editedDetails.assessment.challenges || [];
+                              const currentChallenges = editedDetails.assessment.challenges;
                               const newChallenges = e.target.checked
                                 ? [...currentChallenges, challenge]
                                 : currentChallenges.filter(c => c !== challenge);
@@ -1230,25 +1289,22 @@ export function AssessmentView() {
                     </div>
                   )}
                 </div>
-                <p className="mt-1 text-gray-900 hidden">{assessment.company.exact_it_employees || 'Not specified'}</p>
 
-                <div className="space-y-2 hidden">
+                <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">BearingPoint Advisor</label>
-                  <span className="text-gray-600">{assessment.bearingpoint_advisor || 'Not specified'}</span>
-                </div>
-
-                <div className="space-y-2 hidden">
-                  <label className="block text-sm font-medium text-gray-700">Mission Lead</label>
                   {isEditingDetails ? (
                     <input
                       type="text"
-                      value={editedDetails.missionLead}
-                      onChange={(e) => setEditedDetails(prev => ({ ...prev, missionLead: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter mission lead name"
+                      value={editedDetails.assessment.bearingpoint_advisor}
+                      onChange={(e) => setEditedDetails(prev => ({
+                        ...prev,
+                        assessment: { ...prev.assessment, bearingpoint_advisor: e.target.value }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue focus:border-blue outline-none"
+                      placeholder="Enter BearingPoint advisor name"
                     />
                   ) : (
-                    <p className="text-gray-600">{assessment?.mission_lead || 'Not specified'}</p>
+                    <p className="text-gray-600">{assessment.bearingpoint_advisor || 'Not specified'}</p>
                   )}
                 </div>
 
@@ -1276,15 +1332,18 @@ export function AssessmentView() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end space-x-4 pt-4">
               {isEditingDetails ? (
                 <>
                   <button
                     onClick={() => {
                       setIsEditingDetails(false);
+                      setDetailsError(null);
                       // Reset edited details to current assessment data
                       setEditedDetails({
                         company: {
+                          exact_employees: assessment.company.exact_employees,
+                          effective_revenue: assessment.company.effective_revenue,
                           it_department_size: assessment.company.it_department_size,
                           exact_it_employees: assessment.company.exact_it_employees,
                           annual_it_cost: assessment.company.annual_it_cost,
@@ -1299,8 +1358,7 @@ export function AssessmentView() {
                           assessment_scope: assessment.assessment_scope,
                           challenges: assessment.challenges,
                           bearingpoint_advisor: assessment.bearingpoint_advisor
-                        },
-                        missionLead: assessment.mission_lead || ''
+                        }
                       });
                     }}
                     className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
@@ -1332,35 +1390,39 @@ export function AssessmentView() {
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => {
-                    setIsEditingDetails(true);
-                    // Initialize edited details with current data
-                    setEditedDetails({
-                      company: {
-                        it_department_size: assessment.company.it_department_size,
-                        exact_it_employees: assessment.company.exact_it_employees,
-                        annual_it_cost: assessment.company.annual_it_cost,
-                        effective_it_cost: assessment.company.effective_it_cost,
-                        cio_organization: assessment.company.cio_organization,
-                        it_budget_percentage: assessment.company.it_budget_percentage,
-                        detailed_benchmark_available: assessment.company.detailed_benchmark_available
-                      },
-                      assessment: {
-                        strategy_context: assessment.strategy_context,
-                        technology_context: assessment.technology_context,
-                        assessment_scope: assessment.assessment_scope,
-                        challenges: assessment.challenges,
-                        bearingpoint_advisor: assessment.bearingpoint_advisor
-                      },
-                      missionLead: assessment.mission_lead || ''
-                    });
-                  }}
-                  className="flex items-center space-x-2 px-4 py-2 text-blue hover:text-blue-dark transition-colors"
-                >
-                  <Edit className="h-5 w-5" />
-                  <span>Edit Details</span>
-                </button>
+                assessment.is_open && (
+                  <button
+                    onClick={() => {
+                      setIsEditingDetails(true);
+                      setDetailsError(null);
+                      // Initialize edited details with current data
+                      setEditedDetails({
+                        company: {
+                          exact_employees: assessment.company.exact_employees,
+                          effective_revenue: assessment.company.effective_revenue,
+                          it_department_size: assessment.company.it_department_size || '',
+                          exact_it_employees: assessment.company.exact_it_employees,
+                          annual_it_cost: assessment.company.annual_it_cost || '',
+                          effective_it_cost: assessment.company.effective_it_cost,
+                          cio_organization: assessment.company.cio_organization || '',
+                          it_budget_percentage: assessment.company.it_budget_percentage,
+                          detailed_benchmark_available: assessment.company.detailed_benchmark_available
+                        },
+                        assessment: {
+                          strategy_context: assessment.strategy_context || '',
+                          technology_context: assessment.technology_context || '',
+                          assessment_scope: assessment.assessment_scope || '',
+                          challenges: assessment.challenges || [],
+                          bearingpoint_advisor: assessment.bearingpoint_advisor || ''
+                        }
+                      });
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 text-blue hover:text-blue-dark transition-colors"
+                  >
+                    <Edit className="h-5 w-5" />
+                    <span>Edit Details</span>
+                  </button>
+                )
               )}
             </div>
           </div>
